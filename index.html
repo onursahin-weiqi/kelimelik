@@ -65,7 +65,6 @@ h1{
   border-radius:8px;
   background:#ddd;
   cursor:pointer;
-  transition:0.1s;
 }
 
 .key:active{
@@ -81,11 +80,8 @@ h1{
   border-radius:8px;
   background:#999;
   color:white;
+  cursor:pointer;
 }
-
-.key.correct{ background:#2e7d32; color:white; }
-.key.present{ background:#f9a825; color:white; }
-.key.absent{ background:#bbb; color:#666; }
 
 #popupOverlay{
   position:fixed;
@@ -116,15 +112,8 @@ h1{
   cursor:pointer;
 }
 
-#shareBtn{
-  background:#388e3c;
-  color:white;
-}
-
-#restartBtn{
-  background:#1976d2;
-  color:white;
-}
+#shareBtn{ background:#388e3c; color:white; }
+#restartBtn{ background:#1976d2; color:white; }
 
 #toast{
   position:fixed;
@@ -151,11 +140,7 @@ h1{
 <div id="popupOverlay">
   <div id="popup">
     <h2 id="popupMessage"></h2>
-
-    <button id="shareBtn" onclick="shareResult()">
-      📤 Sonucu Paylaş
-    </button>
-
+    <button id="shareBtn" onclick="shareResult()">📤 Sonucu Paylaş</button>
     <button id="restartBtn"></button>
   </div>
 </div>
@@ -168,12 +153,11 @@ let attempts=0;
 let maxAttempts=6;
 let currentGuess="";
 let history=[];
-let letterStates={};
 
 const keyboardLayout=[
 ["Q","W","E","R","T","Y","U","I","O","P","Ğ","Ü"],
 ["A","S","D","F","G","H","J","K","L","Ş","İ"],
-["ENTER","Z","X","C","V","B","N","M","Ö","Ç","SİL"]
+["SİL","Z","X","C","V","B","N","M","Ö","Ç","ENTER"]
 ];
 
 const VALID_LETTERS=[
@@ -182,100 +166,67 @@ const VALID_LETTERS=[
 "R","S","Ş","T","U","Ü","V","Y","Z"
 ];
 
-
 async function loadWords(){
-
   try{
     const res=await fetch("https://sozluk.gov.tr/autocomplete.json");
     const data=await res.json();
 
     wordList=data
       .map(w=>w.madde.toUpperCase())
-      .filter(w=>{
-        return /^[A-ZÇĞİÖŞÜ]+$/u.test(w) &&
-               w.length===5;
-      });
+      .filter(w=>/^[A-ZÇĞİÖŞÜ]+$/u.test(w) && w.length===5);
 
     startGame();
-
   }catch{
     wordList=["GÖREV","TAKIM","YAZIL","KODLA","BİLGİ"];
     startGame();
   }
 }
 
-
 function startGame(){
-
   target=wordList[Math.floor(Math.random()*wordList.length)];
-
   attempts=0;
   currentGuess="";
   history=[];
-  letterStates={};
-
   document.getElementById("board").innerHTML="";
   document.getElementById("keyboard").innerHTML="";
   document.getElementById("popupOverlay").style.display="none";
-
   createBoard();
   createKeyboard();
 }
 
-
 function createBoard(){
-
   const board=document.getElementById("board");
-
   for(let r=0;r<6;r++){
-
     const row=document.createElement("div");
     row.className="row";
-
     for(let c=0;c<5;c++){
       const tile=document.createElement("div");
       tile.className="tile";
       row.appendChild(tile);
     }
-
     board.appendChild(row);
   }
 }
 
-
 function createKeyboard(){
-
   const kb=document.getElementById("keyboard");
 
   keyboardLayout.forEach(row=>{
-
     const rowDiv=document.createElement("div");
     rowDiv.className="keyRow";
 
     row.forEach(letter=>{
-
       const btn=document.createElement("button");
 
       if(letter==="ENTER" || letter==="SİL"){
-
         btn.innerText = letter==="ENTER" ? "⏎ ENTER" : "⌫ SİL";
         btn.className="specialKey";
-
-        btn.onclick=()=>{
-          if(letter==="ENTER") submitGuess();
-          if(letter==="SİL") deleteLetter();
-        };
-
+        btn.onclick=()=> letter==="ENTER" ? submitGuess() : deleteLetter();
       }else{
-
         btn.innerText=letter;
         btn.className="key";
         btn.id="key-"+letter;
-
-        btn.onclick=()=>{
-          animateKey(btn);
-          pressKey(letter);
-        };
+        btn.onclick=()=> pressKey(letter);
       }
 
       rowDiv.appendChild(btn);
@@ -284,16 +235,6 @@ function createKeyboard(){
     kb.appendChild(rowDiv);
   });
 }
-
-
-function animateKey(el){
-  el.animate([
-    {transform:"scale(1)"},
-    {transform:"scale(0.85)"},
-    {transform:"scale(1)"}
-  ],{duration:120});
-}
-
 
 function pressKey(letter){
   if(currentGuess.length<5){
@@ -308,17 +249,13 @@ function deleteLetter(){
 }
 
 function updateBoard(){
-
   const row=document.getElementById("board").children[attempts];
-
   for(let i=0;i<5;i++){
     row.children[i].innerText=currentGuess[i]||"";
   }
 }
 
-
 function checkGuess(){
-
   const result=Array(5).fill("absent");
   const targetLetters=target.split("");
 
@@ -331,7 +268,6 @@ function checkGuess(){
 
   for(let i=0;i<5;i++){
     if(result[i]==="correct") continue;
-
     const index=targetLetters.indexOf(currentGuess[i]);
     if(index!==-1){
       result[i]="present";
@@ -342,9 +278,7 @@ function checkGuess(){
   return result;
 }
 
-
 function submitGuess(){
-
   if(currentGuess.length!==5){
     showToast("5 harf giriniz");
     return;
@@ -359,12 +293,9 @@ function submitGuess(){
   history.push(result);
 
   const row=document.getElementById("board").children[attempts];
-
   for(let i=0;i<5;i++){
     row.children[i].classList.add(result[i]);
   }
-
-  updateKeyboard(currentGuess,result);
 
   if(currentGuess===target){
     endGame(true);
@@ -379,31 +310,19 @@ function submitGuess(){
   }
 }
 
-
 function endGame(win){
-
   const popup=document.getElementById("popupOverlay");
   const msg=document.getElementById("popupMessage");
   const restartBtn=document.getElementById("restartBtn");
 
   popup.style.display="flex";
-
-  msg.innerText=win
-    ? "🎉 Tebrikler, doğru bildin!"
-    : "❌ Bilemedin! Kelime: "+target;
-
-  restartBtn.innerText=win
-    ? "🆕 Yeni Oyun Başlat"
-    : "🔄 Tekrar Dene";
-
+  msg.innerText=win ? "🎉 Tebrikler!" : "❌ Kelime: "+target;
+  restartBtn.innerText="Yeni Oyun";
   restartBtn.onclick=startGame;
 }
 
-
 function shareResult(){
-
   let text=`Kelimelik ${history.length}/6\n`;
-
   history.forEach(row=>{
     row.forEach(cell=>{
       if(cell==="correct") text+="🟩";
@@ -412,41 +331,26 @@ function shareResult(){
     });
     text+="\n";
   });
-
   navigator.clipboard.writeText(text);
   showToast("Panoya kopyalandı");
 }
 
-
 function showToast(msg){
-
   const toast=document.getElementById("toast");
-
   toast.innerText=msg;
   toast.style.display="block";
-
-  setTimeout(()=>{
-    toast.style.display="none";
-  },2000);
+  setTimeout(()=> toast.style.display="none",2000);
 }
 
-
 document.addEventListener("keydown",(e)=>{
-
   const key=e.key.toUpperCase();
-
   if(key==="ENTER") submitGuess();
   else if(key==="BACKSPACE") deleteLetter();
-  else if(VALID_LETTERS.includes(key)){
-    const btn=document.getElementById("key-"+key);
-    if(btn) animateKey(btn);
-    pressKey(key);
-  }
+  else if(VALID_LETTERS.includes(key)) pressKey(key);
 });
 
 loadWords();
 
 </script>
-
 </body>
 </html>
