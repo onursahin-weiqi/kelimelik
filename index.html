@@ -67,6 +67,7 @@ h1{
 .key.present{ background:#f9a825; color:white; }
 .key.absent{ background:#bbb; color:#666; }
 
+/* Popup */
 #popupOverlay{
   position:fixed;
   top:0;
@@ -129,12 +130,10 @@ h1{
     </button>
 
     <button id="restartBtn" onclick="restartGame()">
-      🔄 Yeniden Başlat
     </button>
+
   </div>
 </div>
-
-<div id="message"></div>
 
 <script>
 
@@ -327,10 +326,36 @@ function submitGuess(){
 
 function endGame(win){
 
-  document.getElementById("popupOverlay").style.display="flex";
+  const popup=document.getElementById("popupOverlay");
+  const msg=document.getElementById("popupMessage");
+  const restartBtn=document.getElementById("restartBtn");
 
-document.getElementById("popupMessage").innerText=
-  win ? "🎉 Tebrikler, doğru bildin!" : "❌ Bilemedin, tekrar dene! Kelime: "+target;
+  popup.style.display="flex";
+
+  msg.innerText = win
+    ? "🎉 Tebrikler, doğru bildin!"
+    : "❌ Bilemedin! Kelime: "+target;
+
+  restartBtn.innerText = win
+    ? "🆕 Yeni Oyun Başlat"
+    : "🔄 Tekrar Dene";
+
+  restartBtn.onclick = win ? startGame : resumeGame;
+}
+
+function resumeGame(){
+  document.getElementById("popupOverlay").style.display="none";
+
+  attempts=0;
+  currentGuess="";
+  history=[];
+  letterStates={};
+
+  document.getElementById("board").innerHTML="";
+  document.getElementById("keyboard").innerHTML="";
+
+  createBoard();
+  createKeyboard();
 }
 
 function shareResult(){
@@ -348,10 +373,6 @@ function shareResult(){
 
   navigator.clipboard.writeText(text);
   alert("Panoya kopyalandı!");
-}
-
-function restartGame(){
-  startGame();
 }
 
 document.addEventListener("keydown",(e)=>{
