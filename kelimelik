@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<title>Kelimelik</title>
+
+<style>
+body{
+  font-family: Arial;
+  text-align:center;
+  background:#f4f4f4;
+}
+
+h1{
+  font-size:48px;
+  letter-spacing:4px;
+}
+
+#board{
+  margin:20px auto;
+  width:max-content;
+}
+
+.row{
+  display:flex;
+  justify-content:center;
+}
+
+.tile{
+  width:55px;
+  height:55px;
+  margin:4px;
+  font-size:24px;
+  font-weight:bold;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  border-radius:6px;
+  border:2px solid #ccc;
+  background:white;
+}
+
+.correct{ background:#2e7d32; color:white; border:none; }
+.present{ background:#f9a825; color:white; border:none; }
+.absent{ background:#616161; color:white; border:none; }
+
+#keyboard{
+  margin-top:25px;
+}
+
+.key{
+  padding:12px 14px;
+  margin:3px;
+  font-size:16px;
+  border:none;
+  border-radius:8px;
+  background:#ddd;
+  cursor:pointer;
+  transition: transform 0.08s ease;
+}
+
+.key:active{
+  transform: scale(0.85);
+}
+
+.key.correct{ background:#2e7d32; color:white; }
+.key.present{ background:#f9a825; color:white; }
+.key.absent{ background:#bbb; color:#666; }
+
+#shareBtn{
+  display:none;
+  margin-top:25px;
+  padding:14px 30px;
+  font-size:18px;
+  border:none;
+  border-radius:10px;
+  background:#1976d2;
+  color:white;
+  cursor:pointer;
+}
+
+#message{
+  margin-top:15px;
+  font-weight:bold;
+}
+</style>
+</head>
+
+<body>
+
+<h1>Kelimelik</h1>
+
+<div id="board"></div>
+<div id="keyboard"></div>
+
+<button id="shareBtn" onclick="shareResult()">📤 Sonucu Paylaş</button>
+
+<div id="message"></div>
+
+<script>
+
+const wordList=[
+"GÖREV","TAKIM","YAZIL","KODLA","BİLGİ",
+"PROJE","PLANL","ZAMAN","AKTİF","VERİM",
+"ÇALIŞ","ÜRETİ","ŞİRKET","HEDEF"
+];
+
+const startDate=new Date("2024-01-01");
+const dayIndex=Math.floor((new Date()-startDate)/(1000*60*60*24));
+const target=wordList[dayIndex % wordList.length];
+
+let attempts=0;
+let maxAttempts=6;
+let currentGuess="";
+let history=[];
+
+let letterStates={};
+
+const keyboardLayout=[
+["Q","W","E","R","T","Y","U","I","O","P","Ğ","Ü"],
+["A","S","D","F","G","H","J","K","L","Ş","İ"],
+["Z","X","C","V","B","N","M","Ö","Ç"]
+];
+
+const VALID_LETTERS=[
+"A","B","C","Ç","D","E","F","G","Ğ","H",
+"I","İ","J","K","L","M","N","O","Ö","P",
+"R","S","Ş","T","U","Ü","V","Y","Z"
+];
+
+function createBoard(){
+  const board=document.getElementById("board");
+
+  for(let r=0;r<6;r++){
+    const row=document.createElement("div");
+    row.className="row";
+
+    for(let c=0;c<5;c++){
+      const tile=document.createElement("div");
+      tile.className="tile";
+      row.appendChild(tile);
+    }
+
+    board.appendChild(row);
+  }
+}
+
+function createKeyboard(){
+  const kb=document.getElementById("keyboard");
+
+  keyboardLayout.forEach(row=>{
+    const rowDiv=document.createElement("div");
+
+    row.forEach(letter=>{
+      const btn=document.createElement("button");
+      btn.innerText=letter;
+      btn.className="key";
+      btn.id="key-"+letter;
+
+      btn.onclick=()=>{
+        animateKey(btn);
+        pressKey(letter);
+      };
+
+      rowDiv.appendChild(btn);
+    });
+
+    kb.appendChild(rowDiv);
+  });
+
+  const ctrl=document.createElement("div");
+
+  const enter=document.createElement("button");
+  enter.innerText="ENTER";
+  enter.className="key";
+  enter.onclick=submitGuess;
+
+  const del=document.createElement("button");
+  del.innerText="SİL";
+  del.className="key";
+  del.onclick=deleteLetter;
+
+  ctrl.appendChild(enter);
+  ctrl.appendChild(del);
+
+  kb.appendChild(ctrl);
+}
+
+function animateKey(el){
+  el.animate([
+    { transform:"scale(1)" },
+    { transform:"scale(0.85)" },
+    { transform:"scale(1)" }
+  ],{
+    duration:120
+  });
+}
+
+function pressKey(letter){
+  if(currentGuess.length<5){
+    currentGuess+=letter;
+    updateBoard();
+  }
+}
+
+function deleteLetter(){
+  currentGuess=currentGuess.slice(0,-1);
+  updateBoard();
+}
+
+function updateBoard(){
+  const row=document.getElementById("board").children[attempts];
+
+  for(let i=0;i<5;i++){
+    row.children[i].innerText=currentGuess[i]||"";
+  }
+}
+
+function checkGuess(guess,target){
+  const result=Array(5).fill("absent");
+  const targetLetters=target.split("");
+
+  for(let i=0;i<5;i++){
+    if(guess[i]===target[i]){
+      result[i]="correct";
+      targetLetters[i]=null;
+    }
+  }
+
+  for(let i=0;i<5;i++){
+    if(result[i]==="correct") continue;
+
+    const index=targetLetters.indexOf(guess[i]);
+    if(index!==-1){
+      result[i]="present";
+      targetLetters[index]=null;
+    }
+  }
+
+  return result;
+}
+
+function updateKeyboard(guess,result){
+  for(let i=0;i<5;i++){
+    const letter=guess[i];
+    const state=result[i];
+
+    if(letterStates[letter]==="correct") continue;
+    if(letterStates[letter]==="present" && state==="absent") continue;
+
+    letterStates[letter]=state;
+
+    const key=document.getElementById("key-"+letter);
+    if(key){
+      key.classList.remove("correct","present","absent");
+      key.classList.add(state);
+    }
+  }
+}
+
+function submitGuess(){
+  if(currentGuess.length!==5) return;
+
+  const result=checkGuess(currentGuess,target);
+  history.push(result);
+
+  const row=document.getElementById("board").children[attempts];
+
+  for(let i=0;i<5;i++){
+    row.children[i].classList.add(result[i]);
+  }
+
+  updateKeyboard(currentGuess,result);
+
+  if(currentGuess===target){
+    endGame(true);
+    return;
+  }
+
+  attempts++;
+  currentGuess="";
+
+  if(attempts===maxAttempts){
+    endGame(false);
+  }
+}
+
+function endGame(win){
+  showMessage(win ? "🎉 Bildin!" : "❌ Kelime: "+target);
+  document.getElementById("shareBtn").style.display="inline-block";
+}
+
+function shareResult(){
+  let text=`Kelimelik ${history.length}/6\n`;
+
+  history.forEach(row=>{
+    row.forEach(cell=>{
+      if(cell==="correct") text+="🟩";
+      else if(cell==="present") text+="🟨";
+      else text+="⬜";
+    });
+    text+="\n";
+  });
+
+  navigator.clipboard.writeText(text);
+  alert("Panoya kopyalandı — istediğin yere yapıştırabilirsin!");
+}
+
+function showMessage(msg){
+  document.getElementById("message").innerText=msg;
+}
+
+document.addEventListener("keydown",(e)=>{
+  const key=e.key.toUpperCase();
+
+  if(key==="ENTER") submitGuess();
+  else if(key==="BACKSPACE") deleteLetter();
+  else if(VALID_LETTERS.includes(key)){
+    const btn=document.getElementById("key-"+key);
+    if(btn) animateKey(btn);
+    pressKey(key);
+  }
+});
+
+createBoard();
+createKeyboard();
+
+</script>
+
+</body>
+</html>
