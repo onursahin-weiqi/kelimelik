@@ -2,22 +2,27 @@
 <html lang="tr">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Kelimelik</title>
 
 <style>
 body{
-  font-family: Arial;
+  font-family: Arial, sans-serif;
   text-align:center;
   background:#f4f4f4;
+  margin:0;
+  padding:0;
 }
 
 h1{
-  font-size:48px;
+  margin-top:20px;
+  font-size:clamp(28px,6vw,48px);
 }
 
 #board{
   margin:20px auto;
-  width:max-content;
+  width:95vw;
+  max-width:420px;
 }
 
 .row{
@@ -26,10 +31,10 @@ h1{
 }
 
 .tile{
-  width:55px;
-  height:55px;
+  flex:1;
+  aspect-ratio:1/1;
   margin:4px;
-  font-size:24px;
+  font-size:clamp(18px,5vw,24px);
   font-weight:bold;
   display:flex;
   justify-content:center;
@@ -44,25 +49,26 @@ h1{
 .absent{ background:#616161; color:white; border:none; }
 
 #keyboard{
-  margin-top:25px;
-  display:flex;
-  flex-direction:column;
-  align-items:center;
+  margin-top:20px;
+  width:100%;
+  max-width:500px;
+  margin-left:auto;
+  margin-right:auto;
 }
 
 .keyRow{
   display:flex;
   justify-content:center;
-  width:520px;
+  width:100%;
 }
 
 .key{
   flex:1;
-  height:55px;
   margin:3px;
-  font-size:16px;
+  height:48px;
+  font-size:clamp(12px,3.5vw,16px);
   border:none;
-  border-radius:8px;
+  border-radius:6px;
   background:#ddd;
   cursor:pointer;
 }
@@ -72,15 +78,14 @@ h1{
 }
 
 .specialKey{
-  flex:1.6;
-  height:55px;
+  flex:1.5;
   margin:3px;
-  font-size:15px;
+  height:48px;
+  font-size:clamp(12px,3.5vw,15px);
   border:none;
-  border-radius:8px;
+  border-radius:6px;
   background:#999;
   color:white;
-  cursor:pointer;
 }
 
 #popupOverlay{
@@ -97,9 +102,10 @@ h1{
 
 #popup{
   background:white;
-  padding:30px;
+  padding:25px;
   border-radius:15px;
-  width:300px;
+  width:90%;
+  max-width:300px;
 }
 
 #shareBtn,#restartBtn{
@@ -117,14 +123,15 @@ h1{
 
 #toast{
   position:fixed;
-  top:20px;
+  top:15px;
   left:50%;
   transform:translateX(-50%);
   background:black;
   color:white;
-  padding:12px 20px;
+  padding:10px 18px;
   border-radius:8px;
   display:none;
+  font-size:14px;
 }
 </style>
 </head>
@@ -170,11 +177,9 @@ async function loadWords(){
   try{
     const res=await fetch("https://sozluk.gov.tr/autocomplete.json");
     const data=await res.json();
-
     wordList=data
       .map(w=>w.madde.toUpperCase())
       .filter(w=>/^[A-ZÇĞİÖŞÜ]+$/u.test(w) && w.length===5);
-
     startGame();
   }catch{
     wordList=["GÖREV","TAKIM","YAZIL","KODLA","BİLGİ"];
@@ -210,28 +215,22 @@ function createBoard(){
 
 function createKeyboard(){
   const kb=document.getElementById("keyboard");
-
   keyboardLayout.forEach(row=>{
     const rowDiv=document.createElement("div");
     rowDiv.className="keyRow";
-
     row.forEach(letter=>{
       const btn=document.createElement("button");
-
       if(letter==="ENTER" || letter==="SİL"){
-        btn.innerText = letter==="ENTER" ? "⏎ ENTER" : "⌫ SİL";
+        btn.innerText=letter==="ENTER"?"⏎ ENTER":"⌫ SİL";
         btn.className="specialKey";
-        btn.onclick=()=> letter==="ENTER" ? submitGuess() : deleteLetter();
+        btn.onclick=()=> letter==="ENTER"?submitGuess():deleteLetter();
       }else{
         btn.innerText=letter;
         btn.className="key";
-        btn.id="key-"+letter;
         btn.onclick=()=> pressKey(letter);
       }
-
       rowDiv.appendChild(btn);
     });
-
     kb.appendChild(rowDiv);
   });
 }
@@ -258,14 +257,12 @@ function updateBoard(){
 function checkGuess(){
   const result=Array(5).fill("absent");
   const targetLetters=target.split("");
-
   for(let i=0;i<5;i++){
     if(currentGuess[i]===target[i]){
       result[i]="correct";
       targetLetters[i]=null;
     }
   }
-
   for(let i=0;i<5;i++){
     if(result[i]==="correct") continue;
     const index=targetLetters.indexOf(currentGuess[i]);
@@ -274,7 +271,6 @@ function checkGuess(){
       targetLetters[index]=null;
     }
   }
-
   return result;
 }
 
@@ -283,9 +279,8 @@ function submitGuess(){
     showToast("5 harf giriniz");
     return;
   }
-
   if(!wordList.includes(currentGuess)){
-    showToast("❌ Geçerli kelime değil");
+    showToast("Geçerli kelime değil");
     return;
   }
 
@@ -304,19 +299,15 @@ function submitGuess(){
 
   attempts++;
   currentGuess="";
-
-  if(attempts===maxAttempts){
-    endGame(false);
-  }
+  if(attempts===maxAttempts) endGame(false);
 }
 
 function endGame(win){
   const popup=document.getElementById("popupOverlay");
   const msg=document.getElementById("popupMessage");
   const restartBtn=document.getElementById("restartBtn");
-
   popup.style.display="flex";
-  msg.innerText=win ? "🎉 Tebrikler!" : "❌ Kelime: "+target;
+  msg.innerText=win?"🎉 Tebrikler!":"❌ Kelime: "+target;
   restartBtn.innerText="Yeni Oyun";
   restartBtn.onclick=startGame;
 }
