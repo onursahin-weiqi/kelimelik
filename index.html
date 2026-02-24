@@ -66,6 +66,8 @@ h1{
 .key.present{ background:#f9a825; color:white; }
 .key.absent{ background:#bbb; color:#666; }
 
+/* Popup */
+
 #popupOverlay{
   position:fixed;
   top:0;
@@ -105,6 +107,12 @@ h1{
   color:white;
 }
 
+#msgError{
+  color:red;
+  font-weight:bold;
+  margin-top:10px;
+}
+
 </style>
 </head>
 
@@ -114,6 +122,8 @@ h1{
 
 <div id="board"></div>
 <div id="keyboard"></div>
+
+<div id="msgError"></div>
 
 <div id="popupOverlay">
   <div id="popup">
@@ -150,7 +160,7 @@ const VALID_LETTERS=[
 ];
 
 
-// ⭐ TDK Kelime Yükle
+// ⭐ TDK kelimelerini yükle
 async function loadWords(){
 
   try{
@@ -168,7 +178,6 @@ async function loadWords(){
 
   }catch(e){
 
-    // Fallback
     wordList=[
       "GÖREV","TAKIM","YAZIL","KODLA","BİLGİ",
       "PROJE","PLANL","ZAMAN","AKTİF","VERİM"
@@ -183,7 +192,7 @@ function startGame(){
 
   if(!wordList.length) return;
 
-  target = wordList[Math.floor(Math.random()*wordList.length)];
+  target=wordList[Math.floor(Math.random()*wordList.length)];
 
   attempts=0;
   currentGuess="";
@@ -193,6 +202,7 @@ function startGame(){
   document.getElementById("board").innerHTML="";
   document.getElementById("keyboard").innerHTML="";
   document.getElementById("popupOverlay").style.display="none";
+  document.getElementById("msgError").innerText="";
 
   createBoard();
   createKeyboard();
@@ -259,10 +269,12 @@ function pressKey(letter){
   }
 }
 
+
 function deleteLetter(){
   currentGuess=currentGuess.slice(0,-1);
   updateBoard();
 }
+
 
 function updateBoard(){
   const row=document.getElementById("board").children[attempts];
@@ -302,6 +314,14 @@ function checkGuess(){
 function submitGuess(){
 
   if(currentGuess.length!==5) return;
+
+  // ⭐ Kelime sözlükte var mı?
+  if(!wordList.includes(currentGuess)){
+    document.getElementById("msgError").innerText="❌ Geçerli kelime değil";
+    return;
+  }
+
+  document.getElementById("msgError").innerText="";
 
   const result=checkGuess();
   history.push(result);
@@ -366,12 +386,7 @@ function endGame(win){
     ? "🆕 Yeni Oyun Başlat"
     : "🔄 Tekrar Dene";
 
-  restartBtn.onclick=win ? startGame : resumeGame;
-}
-
-
-function resumeGame(){
-  startGame();
+  restartBtn.onclick=startGame;
 }
 
 
@@ -405,7 +420,6 @@ document.addEventListener("keydown",(e)=>{
     pressKey(key);
   }
 });
-
 
 loadWords();
 
