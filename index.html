@@ -67,16 +67,43 @@ h1{
 .key.present{ background:#f9a825; color:white; }
 .key.absent{ background:#bbb; color:#666; }
 
-#shareBtn{
+#popupOverlay{
+  position:fixed;
+  top:0;
+  left:0;
+  width:100%;
+  height:100%;
+  background:rgba(0,0,0,0.5);
   display:none;
-  margin-top:25px;
-  padding:14px 30px;
-  font-size:18px;
+  justify-content:center;
+  align-items:center;
+}
+
+#popup{
+  background:white;
+  padding:30px;
+  border-radius:15px;
+  width:300px;
+}
+
+#shareBtn,#restartBtn{
+  margin-top:12px;
+  padding:12px;
+  width:100%;
   border:none;
   border-radius:10px;
+  font-size:16px;
+  cursor:pointer;
+}
+
+#shareBtn{
+  background:#388e3c;
+  color:white;
+}
+
+#restartBtn{
   background:#1976d2;
   color:white;
-  cursor:pointer;
 }
 
 #message{
@@ -93,7 +120,19 @@ h1{
 <div id="board"></div>
 <div id="keyboard"></div>
 
-<button id="shareBtn" onclick="shareResult()">📤 Sonucu Paylaş</button>
+<div id="popupOverlay">
+  <div id="popup">
+    <h2 id="popupMessage"></h2>
+
+    <button id="shareBtn" onclick="shareResult()">
+      📤 Sonucu Paylaş
+    </button>
+
+    <button id="restartBtn" onclick="restartGame()">
+      🔄 Yeniden Başlat
+    </button>
+  </div>
+</div>
 
 <div id="message"></div>
 
@@ -104,17 +143,6 @@ const wordList=[
 "PROJE","PLANL","ZAMAN","AKTİF","VERİM",
 "ÇALIŞ","ÜRETİ","ŞİRKET","HEDEF"
 ];
-
-const startDate=new Date("2024-01-01");
-const dayIndex=Math.floor((new Date()-startDate)/(1000*60*60*24));
-const target=wordList[dayIndex % wordList.length];
-
-let attempts=0;
-let maxAttempts=6;
-let currentGuess="";
-let history=[];
-
-let letterStates={};
 
 const keyboardLayout=[
 ["Q","W","E","R","T","Y","U","I","O","P","Ğ","Ü"],
@@ -127,6 +155,33 @@ const VALID_LETTERS=[
 "I","İ","J","K","L","M","N","O","Ö","P",
 "R","S","Ş","T","U","Ü","V","Y","Z"
 ];
+
+let target;
+let attempts=0;
+let maxAttempts=6;
+let currentGuess="";
+let history=[];
+let letterStates={};
+
+function startGame(){
+
+  const startDate=new Date("2024-01-01");
+  const dayIndex=Math.floor((new Date()-startDate)/(1000*60*60*24));
+
+  target=wordList[dayIndex % wordList.length];
+
+  attempts=0;
+  currentGuess="";
+  history=[];
+  letterStates={};
+
+  document.getElementById("board").innerHTML="";
+  document.getElementById("keyboard").innerHTML="";
+  document.getElementById("popupOverlay").style.display="none";
+
+  createBoard();
+  createKeyboard();
+}
 
 function createBoard(){
   const board=document.getElementById("board");
@@ -167,23 +222,6 @@ function createKeyboard(){
 
     kb.appendChild(rowDiv);
   });
-
-  const ctrl=document.createElement("div");
-
-  const enter=document.createElement("button");
-  enter.innerText="ENTER";
-  enter.className="key";
-  enter.onclick=submitGuess;
-
-  const del=document.createElement("button");
-  del.innerText="SİL";
-  del.className="key";
-  del.onclick=deleteLetter;
-
-  ctrl.appendChild(enter);
-  ctrl.appendChild(del);
-
-  kb.appendChild(ctrl);
 }
 
 function animateKey(el){
@@ -191,9 +229,7 @@ function animateKey(el){
     { transform:"scale(1)" },
     { transform:"scale(0.85)" },
     { transform:"scale(1)" }
-  ],{
-    duration:120
-  });
+  ],{duration:120});
 }
 
 function pressKey(letter){
@@ -216,7 +252,8 @@ function updateBoard(){
   }
 }
 
-function checkGuess(guess,target){
+function checkGuess(guess){
+
   const result=Array(5).fill("absent");
   const targetLetters=target.split("");
 
@@ -241,6 +278,7 @@ function checkGuess(guess,target){
 }
 
 function updateKeyboard(guess,result){
+
   for(let i=0;i<5;i++){
     const letter=guess[i];
     const state=result[i];
@@ -259,9 +297,11 @@ function updateKeyboard(guess,result){
 }
 
 function submitGuess(){
+
   if(currentGuess.length!==5) return;
 
-  const result=checkGuess(currentGuess,target);
+  const result=checkGuess(currentGuess);
+
   history.push(result);
 
   const row=document.getElementById("board").children[attempts];
@@ -286,11 +326,15 @@ function submitGuess(){
 }
 
 function endGame(win){
-  showMessage(win ? "🎉 Bildin!" : "❌ Kelime: "+target);
-  document.getElementById("shareBtn").style.display="inline-block";
+
+  document.getElementById("popupOverlay").style.display="flex";
+
+  document.getElementById("popupMessage").innerText=
+    win ? "🎉 Tebrikler! Bildin" : "❌ Bilemedin! Kelime: "+target;
 }
 
 function shareResult(){
+
   let text=`Kelimelik ${history.length}/6\n`;
 
   history.forEach(row=>{
@@ -303,14 +347,15 @@ function shareResult(){
   });
 
   navigator.clipboard.writeText(text);
-  alert("Panoya kopyalandı — istediğin yere yapıştırabilirsin!");
+  alert("Panoya kopyalandı!");
 }
 
-function showMessage(msg){
-  document.getElementById("message").innerText=msg;
+function restartGame(){
+  startGame();
 }
 
 document.addEventListener("keydown",(e)=>{
+
   const key=e.key.toUpperCase();
 
   if(key==="ENTER") submitGuess();
@@ -322,8 +367,7 @@ document.addEventListener("keydown",(e)=>{
   }
 });
 
-createBoard();
-createKeyboard();
+startGame();
 
 </script>
 
