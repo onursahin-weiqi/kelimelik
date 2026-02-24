@@ -45,39 +45,47 @@ h1{
 
 #keyboard{
   margin-top:25px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+}
+
+.keyRow{
+  display:flex;
+  justify-content:center;
+  width:520px;
 }
 
 .key{
-  padding:12px 14px;
+  flex:1;
+  height:55px;
   margin:3px;
   font-size:16px;
   border:none;
   border-radius:8px;
   background:#ddd;
   cursor:pointer;
-  transition: transform 0.08s ease;
+  transition:0.1s;
 }
 
 .key:active{
-  transform: scale(0.85);
+  transform:scale(0.9);
 }
 
-.controlRow{
-  display:flex;
-  justify-content:space-between;
-  width:420px;
-  margin:8px auto;
-}
-
-.controlKey{
-  padding:12px 30px;
-  font-size:16px;
+.specialKey{
+  flex:1.6;
+  height:55px;
+  margin:3px;
+  font-size:15px;
   border:none;
   border-radius:8px;
   background:#999;
   color:white;
-  cursor:pointer;
 }
+
+.key.correct{ background:#2e7d32; color:white; }
+.key.present{ background:#f9a825; color:white; }
+.key.absent{ background:#bbb; color:#666; }
 
 #popupOverlay{
   position:fixed;
@@ -137,9 +145,7 @@ h1{
 <h1>Kelimelik</h1>
 
 <div id="toast"></div>
-
 <div id="board"></div>
-
 <div id="keyboard"></div>
 
 <div id="popupOverlay">
@@ -167,7 +173,7 @@ let letterStates={};
 const keyboardLayout=[
 ["Q","W","E","R","T","Y","U","I","O","P","Ğ","Ü"],
 ["A","S","D","F","G","H","J","K","L","Ş","İ"],
-["SİL","Z","X","C","V","B","N","M","Ö","Ç","ENTER"]
+["ENTER","Z","X","C","V","B","N","M","Ö","Ç","SİL"]
 ];
 
 const VALID_LETTERS=[
@@ -177,7 +183,6 @@ const VALID_LETTERS=[
 ];
 
 
-// ⭐ TDK Words
 async function loadWords(){
 
   try{
@@ -219,9 +224,11 @@ function startGame(){
 
 
 function createBoard(){
+
   const board=document.getElementById("board");
 
   for(let r=0;r<6;r++){
+
     const row=document.createElement("div");
     row.className="row";
 
@@ -241,19 +248,18 @@ function createKeyboard(){
   const kb=document.getElementById("keyboard");
 
   keyboardLayout.forEach(row=>{
-    const rowDiv=document.createElement("div");
 
-    if(row.includes("SİL") || row.includes("ENTER")){
-      rowDiv.className="controlRow";
-    }
+    const rowDiv=document.createElement("div");
+    rowDiv.className="keyRow";
 
     row.forEach(letter=>{
+
       const btn=document.createElement("button");
 
       if(letter==="ENTER" || letter==="SİL"){
 
         btn.innerText = letter==="ENTER" ? "⏎ ENTER" : "⌫ SİL";
-        btn.className="controlKey";
+        btn.className="specialKey";
 
         btn.onclick=()=>{
           if(letter==="ENTER") submitGuess();
@@ -302,6 +308,7 @@ function deleteLetter(){
 }
 
 function updateBoard(){
+
   const row=document.getElementById("board").children[attempts];
 
   for(let i=0;i<5;i++){
@@ -412,6 +419,7 @@ function shareResult(){
 
 
 function showToast(msg){
+
   const toast=document.getElementById("toast");
 
   toast.innerText=msg;
