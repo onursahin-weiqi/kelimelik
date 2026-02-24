@@ -66,8 +66,6 @@ h1{
 .key.present{ background:#f9a825; color:white; }
 .key.absent{ background:#bbb; color:#666; }
 
-/* Popup */
-
 #popupOverlay{
   position:fixed;
   top:0;
@@ -125,8 +123,7 @@ h1{
       📤 Sonucu Paylaş
     </button>
 
-    <button id="restartBtn" onclick="restartGame()"></button>
-
+    <button id="restartBtn"></button>
   </div>
 </div>
 
@@ -153,7 +150,7 @@ const VALID_LETTERS=[
 ];
 
 
-// ⭐ TDK Sözlükten Kelime Çek
+// ⭐ TDK Kelime Yükle
 async function loadWords(){
 
   try{
@@ -171,7 +168,7 @@ async function loadWords(){
 
   }catch(e){
 
-    // fallback list
+    // Fallback
     wordList=[
       "GÖREV","TAKIM","YAZIL","KODLA","BİLGİ",
       "PROJE","PLANL","ZAMAN","AKTİF","VERİM"
@@ -184,10 +181,9 @@ async function loadWords(){
 
 function startGame(){
 
-  const startDate=new Date("2024-01-01");
-  const dayIndex=Math.floor((new Date()-startDate)/(1000*60*60*24));
+  if(!wordList.length) return;
 
-  target=wordList[dayIndex % wordList.length];
+  target = wordList[Math.floor(Math.random()*wordList.length)];
 
   attempts=0;
   currentGuess="";
@@ -222,6 +218,7 @@ function createBoard(){
 
 
 function createKeyboard(){
+
   const kb=document.getElementById("keyboard");
 
   keyboardLayout.forEach(row=>{
@@ -262,12 +259,10 @@ function pressKey(letter){
   }
 }
 
-
 function deleteLetter(){
   currentGuess=currentGuess.slice(0,-1);
   updateBoard();
 }
-
 
 function updateBoard(){
   const row=document.getElementById("board").children[attempts];
@@ -346,6 +341,7 @@ function updateKeyboard(guess,result){
     letterStates[letter]=state;
 
     const key=document.getElementById("key-"+letter);
+
     if(key){
       key.classList.remove("correct","present","absent");
       key.classList.add(state);
@@ -375,18 +371,7 @@ function endGame(win){
 
 
 function resumeGame(){
-  document.getElementById("popupOverlay").style.display="none";
-
-  attempts=0;
-  currentGuess="";
-  history=[];
-  letterStates={};
-
-  document.getElementById("board").innerHTML="";
-  document.getElementById("keyboard").innerHTML="";
-
-  createBoard();
-  createKeyboard();
+  startGame();
 }
 
 
