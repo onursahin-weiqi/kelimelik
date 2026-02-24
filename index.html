@@ -13,7 +13,6 @@ body{
 
 h1{
   font-size:48px;
-  letter-spacing:4px;
 }
 
 #board{
@@ -68,6 +67,7 @@ h1{
 .key.absent{ background:#bbb; color:#666; }
 
 /* Popup */
+
 #popupOverlay{
   position:fixed;
   top:0;
@@ -107,10 +107,6 @@ h1{
   color:white;
 }
 
-#message{
-  margin-top:15px;
-  font-weight:bold;
-}
 </style>
 </head>
 
@@ -129,19 +125,20 @@ h1{
       📤 Sonucu Paylaş
     </button>
 
-    <button id="restartBtn" onclick="restartGame()">
-    </button>
+    <button id="restartBtn" onclick="restartGame()"></button>
 
   </div>
 </div>
 
 <script>
 
-const wordList=[
-"GÖREV","TAKIM","YAZIL","KODLA","BİLGİ",
-"PROJE","PLANL","ZAMAN","AKTİF","VERİM",
-"ÇALIŞ","ÜRETİ","ŞİRKET","HEDEF"
-];
+let wordList=[];
+let target="";
+let attempts=0;
+let maxAttempts=6;
+let currentGuess="";
+let history=[];
+let letterStates={};
 
 const keyboardLayout=[
 ["Q","W","E","R","T","Y","U","I","O","P","Ğ","Ü"],
@@ -155,12 +152,35 @@ const VALID_LETTERS=[
 "R","S","Ş","T","U","Ü","V","Y","Z"
 ];
 
-let target;
-let attempts=0;
-let maxAttempts=6;
-let currentGuess="";
-let history=[];
-let letterStates={};
+
+// ⭐ TDK Sözlükten Kelime Çek
+async function loadWords(){
+
+  try{
+    const res=await fetch("https://sozluk.gov.tr/autocomplete.json");
+    const data=await res.json();
+
+    wordList=data
+      .map(w=>w.madde.toUpperCase())
+      .filter(w=>{
+        return /^[A-ZÇĞİÖŞÜ]+$/u.test(w) &&
+               w.length===5;
+      });
+
+    startGame();
+
+  }catch(e){
+
+    // fallback list
+    wordList=[
+      "GÖREV","TAKIM","YAZIL","KODLA","BİLGİ",
+      "PROJE","PLANL","ZAMAN","AKTİF","VERİM"
+    ];
+
+    startGame();
+  }
+}
+
 
 function startGame(){
 
@@ -182,6 +202,7 @@ function startGame(){
   createKeyboard();
 }
 
+
 function createBoard(){
   const board=document.getElementById("board");
 
@@ -198,6 +219,7 @@ function createBoard(){
     board.appendChild(row);
   }
 }
+
 
 function createKeyboard(){
   const kb=document.getElementById("keyboard");
@@ -223,13 +245,15 @@ function createKeyboard(){
   });
 }
 
+
 function animateKey(el){
   el.animate([
-    { transform:"scale(1)" },
-    { transform:"scale(0.85)" },
-    { transform:"scale(1)" }
+    {transform:"scale(1)"},
+    {transform:"scale(0.85)"},
+    {transform:"scale(1)"}
   ],{duration:120});
 }
+
 
 function pressKey(letter){
   if(currentGuess.length<5){
@@ -238,10 +262,12 @@ function pressKey(letter){
   }
 }
 
+
 function deleteLetter(){
   currentGuess=currentGuess.slice(0,-1);
   updateBoard();
 }
+
 
 function updateBoard(){
   const row=document.getElementById("board").children[attempts];
@@ -251,13 +277,14 @@ function updateBoard(){
   }
 }
 
-function checkGuess(guess){
+
+function checkGuess(){
 
   const result=Array(5).fill("absent");
   const targetLetters=target.split("");
 
   for(let i=0;i<5;i++){
-    if(guess[i]===target[i]){
+    if(currentGuess[i]===target[i]){
       result[i]="correct";
       targetLetters[i]=null;
     }
@@ -266,7 +293,7 @@ function checkGuess(guess){
   for(let i=0;i<5;i++){
     if(result[i]==="correct") continue;
 
-    const index=targetLetters.indexOf(guess[i]);
+    const index=targetLetters.indexOf(currentGuess[i]);
     if(index!==-1){
       result[i]="present";
       targetLetters[index]=null;
@@ -276,31 +303,12 @@ function checkGuess(guess){
   return result;
 }
 
-function updateKeyboard(guess,result){
-
-  for(let i=0;i<5;i++){
-    const letter=guess[i];
-    const state=result[i];
-
-    if(letterStates[letter]==="correct") continue;
-    if(letterStates[letter]==="present" && state==="absent") continue;
-
-    letterStates[letter]=state;
-
-    const key=document.getElementById("key-"+letter);
-    if(key){
-      key.classList.remove("correct","present","absent");
-      key.classList.add(state);
-    }
-  }
-}
 
 function submitGuess(){
 
   if(currentGuess.length!==5) return;
 
-  const result=checkGuess(currentGuess);
-
+  const result=checkGuess();
   history.push(result);
 
   const row=document.getElementById("board").children[attempts];
@@ -324,6 +332,28 @@ function submitGuess(){
   }
 }
 
+
+function updateKeyboard(guess,result){
+
+  for(let i=0;i<5;i++){
+
+    const letter=guess[i];
+    const state=result[i];
+
+    if(letterStates[letter]==="correct") continue;
+    if(letterStates[letter]==="present" && state==="absent") continue;
+
+    letterStates[letter]=state;
+
+    const key=document.getElementById("key-"+letter);
+    if(key){
+      key.classList.remove("correct","present","absent");
+      key.classList.add(state);
+    }
+  }
+}
+
+
 function endGame(win){
 
   const popup=document.getElementById("popupOverlay");
@@ -332,16 +362,17 @@ function endGame(win){
 
   popup.style.display="flex";
 
-  msg.innerText = win
+  msg.innerText=win
     ? "🎉 Tebrikler, doğru bildin!"
     : "❌ Bilemedin! Kelime: "+target;
 
-  restartBtn.innerText = win
+  restartBtn.innerText=win
     ? "🆕 Yeni Oyun Başlat"
     : "🔄 Tekrar Dene";
 
-  restartBtn.onclick = win ? startGame : resumeGame;
+  restartBtn.onclick=win ? startGame : resumeGame;
 }
+
 
 function resumeGame(){
   document.getElementById("popupOverlay").style.display="none";
@@ -357,6 +388,7 @@ function resumeGame(){
   createBoard();
   createKeyboard();
 }
+
 
 function shareResult(){
 
@@ -375,6 +407,7 @@ function shareResult(){
   alert("Panoya kopyalandı!");
 }
 
+
 document.addEventListener("keydown",(e)=>{
 
   const key=e.key.toUpperCase();
@@ -388,7 +421,8 @@ document.addEventListener("keydown",(e)=>{
   }
 });
 
-startGame();
+
+loadWords();
 
 </script>
 
