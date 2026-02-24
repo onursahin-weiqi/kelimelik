@@ -329,8 +329,8 @@ function endGame(win){
 
   document.getElementById("popupOverlay").style.display="flex";
 
-  document.getElementById("popupMessage").innerText=
-    win ? "🎉 Tebrikler! Bildin" : "❌ Bilemedin! Kelime: "+target;
+document.getElementById("popupMessage").innerText=
+  win ? "🎉 Tebrikler, doğru bildin!" : "❌ Bilemedin, tekrar dene! Kelime: "+target;
 }
 
 function shareResult(){
