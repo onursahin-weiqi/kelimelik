@@ -66,7 +66,30 @@ h1{
 .key.present{ background:#f9a825; color:white; }
 .key.absent{ background:#bbb; color:#666; }
 
-/* Popup */
+/* Control keys */
+.controlKey{
+  padding:12px 18px;
+  margin:3px;
+  border:none;
+  border-radius:8px;
+  background:#999;
+  color:white;
+  cursor:pointer;
+}
+
+/* Toast message */
+#toast{
+  position:fixed;
+  top:20px;
+  left:50%;
+  transform:translateX(-50%);
+  background:black;
+  color:white;
+  padding:12px 20px;
+  border-radius:8px;
+  display:none;
+  z-index:999;
+}
 
 #popupOverlay{
   position:fixed;
@@ -112,7 +135,6 @@ h1{
   font-weight:bold;
   margin-top:10px;
 }
-
 </style>
 </head>
 
@@ -120,10 +142,10 @@ h1{
 
 <h1>Kelimelik</h1>
 
+<div id="toast"></div>
+
 <div id="board"></div>
 <div id="keyboard"></div>
-
-<div id="msgError"></div>
 
 <div id="popupOverlay">
   <div id="popup">
@@ -150,7 +172,7 @@ let letterStates={};
 const keyboardLayout=[
 ["Q","W","E","R","T","Y","U","I","O","P","Ğ","Ü"],
 ["A","S","D","F","G","H","J","K","L","Ş","İ"],
-["Z","X","C","V","B","N","M","Ö","Ç"]
+["ENTER","Z","X","C","V","B","N","M","BACK"]
 ];
 
 const VALID_LETTERS=[
@@ -160,7 +182,7 @@ const VALID_LETTERS=[
 ];
 
 
-// ⭐ TDK kelimelerini yükle
+// ⭐ TDK Words
 async function loadWords(){
 
   try{
@@ -176,21 +198,14 @@ async function loadWords(){
 
     startGame();
 
-  }catch(e){
-
-    wordList=[
-      "GÖREV","TAKIM","YAZIL","KODLA","BİLGİ",
-      "PROJE","PLANL","ZAMAN","AKTİF","VERİM"
-    ];
-
+  }catch{
+    wordList=["GÖREV","TAKIM","YAZIL","KODLA","BİLGİ"];
     startGame();
   }
 }
 
 
 function startGame(){
-
-  if(!wordList.length) return;
 
   target=wordList[Math.floor(Math.random()*wordList.length)];
 
@@ -202,7 +217,6 @@ function startGame(){
   document.getElementById("board").innerHTML="";
   document.getElementById("keyboard").innerHTML="";
   document.getElementById("popupOverlay").style.display="none";
-  document.getElementById("msgError").innerText="";
 
   createBoard();
   createKeyboard();
@@ -236,14 +250,26 @@ function createKeyboard(){
 
     row.forEach(letter=>{
       const btn=document.createElement("button");
-      btn.innerText=letter;
-      btn.className="key";
-      btn.id="key-"+letter;
 
-      btn.onclick=()=>{
-        animateKey(btn);
-        pressKey(letter);
-      };
+      if(letter==="ENTER" || letter==="BACK"){
+        btn.innerText=letter==="ENTER" ? "⏎ ENTER" : "⌫ BACK";
+        btn.className="controlKey";
+
+        btn.onclick=()=>{
+          if(letter==="ENTER") submitGuess();
+          if(letter==="BACK") deleteLetter();
+        };
+
+      }else{
+        btn.innerText=letter;
+        btn.className="key";
+        btn.id="key-"+letter;
+
+        btn.onclick=()=>{
+          animateKey(btn);
+          pressKey(letter);
+        };
+      }
 
       rowDiv.appendChild(btn);
     });
@@ -269,12 +295,10 @@ function pressKey(letter){
   }
 }
 
-
 function deleteLetter(){
   currentGuess=currentGuess.slice(0,-1);
   updateBoard();
 }
-
 
 function updateBoard(){
   const row=document.getElementById("board").children[attempts];
@@ -313,15 +337,15 @@ function checkGuess(){
 
 function submitGuess(){
 
-  if(currentGuess.length!==5) return;
-
-  // ⭐ Kelime sözlükte var mı?
-  if(!wordList.includes(currentGuess)){
-    document.getElementById("msgError").innerText="❌ Geçerli kelime değil";
+  if(currentGuess.length!==5){
+    showToast("5 harf giriniz");
     return;
   }
 
-  document.getElementById("msgError").innerText="";
+  if(!wordList.includes(currentGuess)){
+    showToast("❌ Geçerli kelime değil");
+    return;
+  }
 
   const result=checkGuess();
   history.push(result);
@@ -370,6 +394,18 @@ function updateKeyboard(guess,result){
 }
 
 
+function showToast(msg){
+  const toast=document.getElementById("toast");
+
+  toast.innerText=msg;
+  toast.style.display="block";
+
+  setTimeout(()=>{
+    toast.style.display="none";
+  },2000);
+}
+
+
 function endGame(win){
 
   const popup=document.getElementById("popupOverlay");
@@ -404,7 +440,7 @@ function shareResult(){
   });
 
   navigator.clipboard.writeText(text);
-  alert("Panoya kopyalandı!");
+  showToast("Panoya kopyalandı");
 }
 
 
