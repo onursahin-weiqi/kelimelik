@@ -6,95 +6,127 @@
 <title>Kelimelik</title>
 
 <style>
+
 *{
-  box-sizing:border-box;
-  touch-action:manipulation;
+box-sizing:border-box;
+touch-action:manipulation;
 }
 
 body{
-  font-family: Arial, sans-serif;
-  text-align:center;
-  background:#f4f4f4;
-  margin:0;
-  padding:0;
+font-family:Arial;
+background:#f4f4f4;
+margin:0;
+text-align:center;
 }
 
 h1{
-  margin:20px 0;
-  font-size:clamp(28px,6vw,48px);
+margin:20px 0;
+font-size:clamp(28px,6vw,48px);
 }
 
 #board{
-  margin:10px auto;
-  width:95vw;
-  max-width:420px;
+margin:10px auto;
+width:95vw;
+max-width:420px;
 }
 
 .row{
-  display:flex;
+display:flex;
 }
 
 .tile{
-  flex:1;
-  aspect-ratio:1/1;
-  margin:4px;
-  font-size:clamp(18px,5vw,24px);
-  font-weight:bold;
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  border-radius:6px;
-  border:2px solid #ccc;
-  background:white;
+flex:1;
+aspect-ratio:1/1;
+margin:4px;
+font-size:clamp(18px,5vw,24px);
+font-weight:bold;
+display:flex;
+justify-content:center;
+align-items:center;
+border-radius:6px;
+border:2px solid #ccc;
+background:white;
 }
 
-.correct{ background:#2e7d32; color:white; border:none; }
-.present{ background:#f9a825; color:white; border:none; }
-.absent{ background:#616161; color:white; border:none; }
+.correct{background:#2e7d32;color:white;border:none;}
+.present{background:#f9a825;color:white;border:none;}
+.absent{background:#616161;color:white;border:none;}
 
 #keyboard{
-  width:100%;
-  max-width:500px;
-  margin:10px auto 20px auto;
+width:100%;
+max-width:500px;
+margin:10px auto 20px auto;
 }
 
 .keyRow{
-  display:flex;
+display:flex;
 }
 
 .key{
-  flex:1;
-  margin:3px;
-  height:48px;
-  font-size:clamp(12px,3.5vw,16px);
-  border:none;
-  border-radius:6px;
-  background:#ddd;
+flex:1;
+margin:3px;
+height:48px;
+font-size:clamp(12px,3.5vw,16px);
+border:none;
+border-radius:6px;
+background:#ddd;
 }
 
 .specialKey{
-  flex:1.6;
-  margin:3px;
-  height:48px;
-  font-size:clamp(12px,3.5vw,15px);
-  border:none;
-  border-radius:6px;
-  background:#999;
-  color:white;
+flex:1.6;
+margin:3px;
+height:48px;
+font-size:clamp(12px,3.5vw,15px);
+border:none;
+border-radius:6px;
+background:#999;
+color:white;
 }
 
 #toast{
-  position:fixed;
-  top:15px;
-  left:50%;
-  transform:translateX(-50%);
-  background:black;
-  color:white;
-  padding:10px 18px;
-  border-radius:8px;
-  display:none;
-  font-size:14px;
+position:fixed;
+top:15px;
+left:50%;
+transform:translateX(-50%);
+background:black;
+color:white;
+padding:10px 18px;
+border-radius:8px;
+display:none;
+font-size:14px;
 }
+
+#popupOverlay{
+position:fixed;
+top:0;
+left:0;
+width:100%;
+height:100%;
+background:rgba(0,0,0,0.5);
+display:none;
+justify-content:center;
+align-items:center;
+}
+
+#popup{
+background:white;
+padding:25px;
+border-radius:12px;
+width:85%;
+max-width:320px;
+}
+
+#popup button{
+margin-top:12px;
+padding:12px;
+width:100%;
+border:none;
+border-radius:8px;
+font-size:16px;
+background:#1976d2;
+color:white;
+}
+
 </style>
 </head>
 
@@ -105,6 +137,13 @@ h1{
 <div id="toast"></div>
 <div id="board"></div>
 <div id="keyboard"></div>
+
+<div id="popupOverlay">
+<div id="popup">
+<h2 id="popupMessage"></h2>
+<button onclick="startGame()">Yeni Oyun</button>
+</div>
+</div>
 
 <script>
 
@@ -127,163 +166,255 @@ const VALID_LETTERS=[
 ];
 
 async function loadWords(){
-  try{
-    const res=await fetch("https://sozluk.gov.tr/autocomplete.json");
-    const data=await res.json();
 
-    wordList=data
-      .map(w=>w.madde.toLocaleUpperCase("tr-TR"))
-      .filter(w=>/^[A-ZÇĞİÖŞÜ]+$/u.test(w) && w.length===5);
+try{
 
-    startGame();
-  }catch{
-    wordList=["GÖREV","TAKIM","YAZIL","KODLA","BİLGİ"];
-    startGame();
-  }
+const res=await fetch("https://sozluk.gov.tr/autocomplete.json");
+const data=await res.json();
+
+wordList=data
+.map(w=>w.madde.toLocaleUpperCase("tr-TR"))
+.filter(w=>/^[A-ZÇĞİÖŞÜ]+$/u.test(w) && w.length===5);
+
+startGame();
+
+}catch{
+
+wordList=["GÖREV","TAKIM","YAZIL","KODLA","BİLGİ"];
+startGame();
+
+}
+
 }
 
 function startGame(){
-  target=wordList[Math.floor(Math.random()*wordList.length)];
-  attempts=0;
-  currentGuess="";
-  document.getElementById("board").innerHTML="";
-  document.getElementById("keyboard").innerHTML="";
-  createBoard();
-  createKeyboard();
+
+target=wordList[Math.floor(Math.random()*wordList.length)];
+
+attempts=0;
+currentGuess="";
+
+document.getElementById("board").innerHTML="";
+document.getElementById("keyboard").innerHTML="";
+document.getElementById("popupOverlay").style.display="none";
+
+createBoard();
+createKeyboard();
+
 }
 
 function createBoard(){
-  const board=document.getElementById("board");
-  for(let r=0;r<6;r++){
-    const row=document.createElement("div");
-    row.className="row";
-    for(let c=0;c<5;c++){
-      const tile=document.createElement("div");
-      tile.className="tile";
-      row.appendChild(tile);
-    }
-    board.appendChild(row);
-  }
+
+const board=document.getElementById("board");
+
+for(let r=0;r<6;r++){
+
+const row=document.createElement("div");
+row.className="row";
+
+for(let c=0;c<5;c++){
+
+const tile=document.createElement("div");
+tile.className="tile";
+
+row.appendChild(tile);
+
+}
+
+board.appendChild(row);
+
+}
+
 }
 
 function createKeyboard(){
-  const kb=document.getElementById("keyboard");
 
-  keyboardLayout.forEach(row=>{
-    const rowDiv=document.createElement("div");
-    rowDiv.className="keyRow";
+const kb=document.getElementById("keyboard");
 
-    row.forEach(letter=>{
-      const btn=document.createElement("button");
+keyboardLayout.forEach(row=>{
 
-      if(letter==="ENTER" || letter==="SİL"){
-        btn.innerText=letter==="ENTER"?"ENTER":"SİL";
-        btn.className="specialKey";
-        btn.onclick=()=> letter==="ENTER"?submitGuess():deleteLetter();
-      }else{
-        btn.innerText=letter;
-        btn.className="key";
-        btn.onclick=()=> pressKey(letter);
-      }
+const rowDiv=document.createElement("div");
+rowDiv.className="keyRow";
 
-      rowDiv.appendChild(btn);
-    });
+row.forEach(letter=>{
 
-    kb.appendChild(rowDiv);
-  });
+const btn=document.createElement("button");
+
+if(letter==="ENTER"||letter==="SİL"){
+
+btn.innerText=letter;
+btn.className="specialKey";
+btn.onclick=()=>letter==="ENTER"?submitGuess():deleteLetter();
+
+}else{
+
+btn.innerText=letter;
+btn.className="key";
+btn.onclick=()=>pressKey(letter);
+
+}
+
+rowDiv.appendChild(btn);
+
+});
+
+kb.appendChild(rowDiv);
+
+});
+
 }
 
 function pressKey(letter){
-  if(currentGuess.length<5){
-    currentGuess+=letter;
-    updateBoard();
-  }
+
+if(currentGuess.length<5){
+
+currentGuess+=letter;
+updateBoard();
+
+}
+
 }
 
 function deleteLetter(){
-  currentGuess=currentGuess.slice(0,-1);
-  updateBoard();
+
+currentGuess=currentGuess.slice(0,-1);
+updateBoard();
+
 }
 
 function updateBoard(){
-  const row=document.getElementById("board").children[attempts];
-  for(let i=0;i<5;i++){
-    row.children[i].innerText=currentGuess[i]||"";
-  }
+
+const row=document.getElementById("board").children[attempts];
+
+for(let i=0;i<5;i++){
+
+row.children[i].innerText=currentGuess[i]||"";
+
+}
+
 }
 
 function submitGuess(){
 
-  if(currentGuess.length!==5){
-    showToast("5 harf giriniz");
-    return;
-  }
+if(currentGuess.length!==5){
 
-  if(!wordList.includes(currentGuess)){
-    showToast("Geçerli kelime değil");
-    return;
-  }
+showToast("5 harf giriniz");
+return;
 
-  const result=checkGuess();
-  const row=document.getElementById("board").children[attempts];
+}
 
-  for(let i=0;i<5;i++){
-    row.children[i].classList.add(result[i]);
-  }
+if(!wordList.includes(currentGuess)){
 
-  if(currentGuess===target){
-    showToast("Tebrikler!");
-    return;
-  }
+showToast("Geçerli kelime değil");
+return;
 
-  attempts++;
-  currentGuess="";
+}
+
+const result=checkGuess();
+const row=document.getElementById("board").children[attempts];
+
+for(let i=0;i<5;i++){
+
+row.children[i].classList.add(result[i]);
+
+}
+
+if(currentGuess===target){
+
+endGame(true);
+return;
+
+}
+
+attempts++;
+currentGuess="";
+
+if(attempts===maxAttempts){
+
+endGame(false);
+
+}
+
 }
 
 function checkGuess(){
-  const result=Array(5).fill("absent");
-  const targetLetters=target.split("");
 
-  for(let i=0;i<5;i++){
-    if(currentGuess[i]===target[i]){
-      result[i]="correct";
-      targetLetters[i]=null;
-    }
-  }
+const result=Array(5).fill("absent");
+const targetLetters=target.split("");
 
-  for(let i=0;i<5;i++){
-    if(result[i]==="correct") continue;
-    const index=targetLetters.indexOf(currentGuess[i]);
-    if(index!==-1){
-      result[i]="present";
-      targetLetters[index]=null;
-    }
-  }
+for(let i=0;i<5;i++){
 
-  return result;
+if(currentGuess[i]===target[i]){
+
+result[i]="correct";
+targetLetters[i]=null;
+
+}
+
+}
+
+for(let i=0;i<5;i++){
+
+if(result[i]==="correct")continue;
+
+const index=targetLetters.indexOf(currentGuess[i]);
+
+if(index!==-1){
+
+result[i]="present";
+targetLetters[index]=null;
+
+}
+
+}
+
+return result;
+
+}
+
+function endGame(win){
+
+const popup=document.getElementById("popupOverlay");
+const msg=document.getElementById("popupMessage");
+
+popup.style.display="flex";
+
+if(win){
+
+msg.innerText="🎉 Tebrikler, doğru bildin!";
+
+}else{
+
+msg.innerText="❌ Bilemedin! Kelime: "+target;
+
+}
+
 }
 
 function showToast(msg){
-  const toast=document.getElementById("toast");
-  toast.innerText=msg;
-  toast.style.display="block";
-  setTimeout(()=> toast.style.display="none",2000);
+
+const toast=document.getElementById("toast");
+
+toast.innerText=msg;
+toast.style.display="block";
+
+setTimeout(()=>toast.style.display="none",2000);
+
 }
 
 document.addEventListener("keydown",(e)=>{
 
-  let key=e.key;
+let key=e.key.toLocaleUpperCase("tr-TR");
 
-  // Türkçe normalize
-  key=key.toLocaleUpperCase("tr-TR");
+if(key==="ENTER")submitGuess();
+else if(key==="BACKSPACE")deleteLetter();
+else if(VALID_LETTERS.includes(key))pressKey(key);
 
-  if(key==="ENTER") submitGuess();
-  else if(key==="BACKSPACE") deleteLetter();
-  else if(VALID_LETTERS.includes(key)) pressKey(key);
 });
 
 loadWords();
 
 </script>
+
 </body>
 </html>
